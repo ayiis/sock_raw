@@ -11,13 +11,13 @@ love it
 ### 2. synflood.py
 
 I cut a part of code to make it out of work, sorry about that.
+
 But you know where to find it :P
 
 Add to your iptables like follow
 ```bash
     iptables -A INPUT -p tcp -s 192.168.152.134 -j DROP
     iptables -A OUTPUT -p tcp -d 192.168.152.134 --tcp-flags RST RST -j DROP
-    -A OUTPUT -p tcp -d 192.168.152.134 --tcp-flags RST RST -j DROP
 ```
 Just to tell your kenel:
     Do not send RST packet to target.134 -- that is what SYN FLOOD is
