@@ -1,7 +1,5 @@
 '''
-    Syn flood program in python using raw sockets (Linux)
-
-    Silver Moon (m00n.silv3r@gmail.com)
+    Thanks to Silver Moon (m00n.silv3r+gmail.com)
 '''
 
 import socket, fcntl
