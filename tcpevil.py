@@ -215,8 +215,8 @@ if __name__ == '__main__':
 
     myfilter = {
         'local_mac': ['00:0C:29:69:BA:F5'],
-        'local_ip': ['192.168.152.131'],
-        'local_port': [360, 8080, 3000],
+        'local_ip': ['192.168.152.131'], # all these ip will be injected
+        'local_port': [80], # all these port will be injected
     }
 
     main(myfilter)
