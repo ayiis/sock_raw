@@ -34,3 +34,9 @@ Just to tell your kenel:
 Yes it is so evil to inject a tcp packet.
 
 ![tcpevil](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/tcpevil.png)
+
+### NOTE
+
+    SOCK_RAW for MacOS: Check `https://github.com/pynetwork/pypcap` to get the `libpcap`
+    MacOS's ping: https://opensource.apple.com/source/network_cmds/network_cmds-433/ping.tproj/ping.c.auto.html
+
