@@ -24,12 +24,17 @@ def getLocalIP(ifname):
     s.close()
     return {'mac': mac, 'ip': ip}
 
-
 def pPacket(source_address, source_port, remote_address, remote_port):
 
-    # you know where it is
+    ip_header = pack('!BBHHHBBH4s4s' , 69, 0, 40, 65535, 0, 255, 6, 0, source_address, remote_address)
+    tcp_header = pack('!HHLLBBHHH' , source_port, remote_port, 2002, 1001, 80, 2,  53270, 0, 0)
 
-    return packet
+    psh = pack('!4s4sBBH' , source_address , remote_address , 0 , 6 , 20)
+    psh = psh + tcp_header
+    tcp_checksum = checksum(psh)
+    tcp_header = pack('!HHLLBBHHH' , source_port, remote_port, 2002, 1001, 80, 2,  53270, tcp_checksum , 0)
+
+    return ip_header + tcp_header
 
 
 #
