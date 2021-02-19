@@ -9,7 +9,7 @@ from aytool.common.print_table import PrettyTable
              │                  Destination Mac │                       Source Mac │Ether type│
              └──────────────────────────────────┴──────────────────────────────────┴──────────┘
 ┌──────┬──────┬──────────┬─────────────────────┐  ┌────────────────────────┬──────────────────┐
-│  Ver │   HL │      TOS │        Total length │  │            Source Port │ Destination Port │
+│  Ver │  IHL │      TOS │        Total length │  │            Source Port │ Destination Port │
 ├──────┴──────┴──────────┼──────┬──────────────┤  ├────────────────────────┴──────────────────┤
 │         Identification │ Flags│FragmentOffset│  │                           Sequence Number │
 ├─────────────┬──────────┼──────┴──────────────┤  ├───────────────────────────────────────────┤
@@ -39,7 +39,7 @@ def better_print(packet):
     ip_hdata = struct.unpack("!BBHHHBBH4s4s", ip_hdata_raw[:20])
 
     ip_ver = ip_hdata[0] >> 4           # ??
-    ip_hlen = ip_hdata[0] << 2 & 0b111100
+    # ip_hlen = ip_hdata[0] << 2 & 0b111100
     ip_dlen = ip_hdata[2]
 
     # TCP 头部长度通常是 20 + 可选项
@@ -69,6 +69,9 @@ def better_print(packet):
     pt1.add_line((32, ), [socket.inet_ntoa(ip_hdata[8])])
     pt1.add_line((32, ), [socket.inet_ntoa(ip_hdata[9])])
     pt1.add_line((32, ), [("0x" + ip_hdata_raw[20:].hex()) if ip_hlen > 20 else ""])
+
+    packet[14:][12:16]
+    ip_hdata_raw[16:20]
 
     # TCP
     pt2 = PrettyTable()

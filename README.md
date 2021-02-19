@@ -1,11 +1,11 @@
 # python
 
 
-### [basic-sinffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
+### [basic-sniffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
 
-love this!
+Use this to capture a TCP packet!
 
-![basic-sinffer](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/basic-sinffer.png)
+![basic-sniffer](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/basic-sniffer.png)
 
 
 ### [better_tcp_sniffer.py](https://github.com/ayiis/python/blob/master/better_tcp_sniffer.py)
@@ -70,6 +70,13 @@ Just to tell your kenel:
 Yes it is so evil to inject a tcp packet.
 
 ![tcpevil](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/tcpevil.png)
+
+
+### [http_sniffer.py](https://github.com/ayiis/python/blob/master/http_sniffer.py)
+
+Here's a good sniffer for HTTP request and response! You got to love it!
+
+![http_sniffer](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/http_sniffer.jpg)
 
 
 ### NOTE
