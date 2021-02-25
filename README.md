@@ -3,14 +3,14 @@
 
 ### [basic-sniffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
 
-Use this to capture a TCP packet!
+Use this to capture a TCP packet! A basic `tcp sniffer` for sample use.
 
 ![basic-sniffer](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/basic-sniffer.png)
 
 
 ### [better_tcp_sniffer.py](https://github.com/ayiis/python/blob/master/better_tcp_sniffer.py)
 
-this table is construct like the definition size of packet, without extra infomation, for senior.
+This table is construct like the definition size of packet, without extra infomation, a better `tcp sniffer` for senior.
 
 ```code
              ┌──────────────────────────────────┬──────────────────────────────────┬──────────┐
@@ -39,9 +39,11 @@ this table is construct like the definition size of packet, without extra infoma
 
 ### [pcap_usage.py](https://github.com/ayiis/python/blob/master/pcap_usage.py)
 
-use pcap to send a raw socket packet. It's a very low level usage that only for senior.
+Use pcap to send a raw socket packet. It's a very low level usage that only for senior.
 
-you should DROP all `RST` signal between the connection and handle it yourself.
+You should DROP all RST signal between the connection and handle it yourself.
+
+It's about `tcp spoof`.
 
 
 ### [synflood.py](https://github.com/ayiis/python/blob/master/synflood.py)
@@ -67,20 +69,27 @@ Just to tell your kenel:
 
 ### [tcpevil.py](https://github.com/ayiis/python/blob/master/tcpevil.py)
 
-Yes it is so evil to inject a tcp packet.
+Yes it is so evil to inject a tcp packet: here is `tcp hijack`.
 
 ![tcpevil](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/tcpevil.png)
 
 
 ### [http_sniffer.py](https://github.com/ayiis/python/blob/master/http_sniffer.py)
 
-Here's a good sniffer for HTTP request and response! You got to love it!
+Here's a good `HTTP sniffer` request and response! You got to love it!
 
 ![http_sniffer](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/http_sniffer.jpg)
+
+
+### [my_trace_route.py](https://github.com/ayiis/python/blob/master/my_trace_route.py)
+
+Here's a nice and fast `trace route` tool! Hope you like it!
+
+Example in image shows a target that 12 TTL away and its results from ICMP/TCP/UDP.
+
+![my_trace_route](https://raw.githubusercontent.com/ayiis/ayiis.github.io/master/img/my_trace_route.jpg)
 
 
 ### NOTE
 
     SOCK_RAW for MacOS: Check `https://github.com/pynetwork/pypcap` to get the `libpcap`
-    MacOS's ping: https://opensource.apple.com/source/network_cmds/network_cmds-433/ping.tproj/ping.c.auto.html
-
