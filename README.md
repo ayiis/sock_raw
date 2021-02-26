@@ -2,9 +2,9 @@
 
 ## First of all
 
-** Contents contain hacking techniques, use is properly, do not be evil. **
+* Contents contain hacking techniques, use is properly, do not be evil.
 
-** 以下内容包含攻击性黑客技术，请妥善使用，勿用于非法用途。 **
+* 以下内容包含攻击性黑客技术，请妥善使用，勿用于非法用途。
 
 ### [basic-sniffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
 
