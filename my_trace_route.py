@@ -328,9 +328,15 @@ def main(settings):
                 for i in range(1, settings["res"]["max_ttl"] + 1):
                     print("%4s%20s\t\t%20s\t\t%20s" % (
                         i,
-                        settings["res"]["icmp"].get(i, "*"),
-                        settings["res"]["tcp"].get(i, "*"),
-                        settings["res"]["udp"].get(i, "*"),
+                        settings["res"]["icmp"].get(i, "*") if (
+                            i <= settings["end_icmp"] or settings["end_icmp"] == 0
+                        ) else "",
+                        settings["res"]["tcp"].get(i, "*") if (
+                            i <= settings["end_tcp"] or settings["end_tcp"] == 0
+                        ) else "",
+                        settings["res"]["udp"].get(i, "*") if (
+                            i <= settings["end_udp"] or settings["end_udp"] == 0
+                        ) else "",
                     ))
 
                 break
@@ -343,6 +349,34 @@ def main(settings):
                 start_cleanup = True
 
 
+def get_local_addr(ifname):
+    """
+        通过 python 直接获得 osx 的本地 MAC 比较困难，此处依赖 ifconfig 获取
+    """
+    import os, re
+    mac, ip = None, None
+    res_text = os.popen("""ifconfig|grep "^%s:" -A7""" % ifname).read()
+    for line in res_text.splitlines():
+
+        re_mac = re.match(r"""^[\W]+ether[\W]+(([0-9a-f]{2}:){5}[0-9a-f]{2})[\W]*$""", line, re.I)
+        if re_mac:
+            mac = re_mac.groups()[0]
+
+        re_ip = re.match(r"""^[\W]+inet[\W]+(([0-9]{1,3}\.){3}[0-9]{1,3})[\W]+netmask.*$""", line, re.I)
+        if re_ip:
+            ip = re_ip.groups()[0]
+
+    return mac, ip
+
+
+def get_host_by_name(name):
+    """
+        只解析第一个 IP，也可以像 downloader 那样解析多个
+    """
+    from socket import gethostbyname
+    return gethostbyname(name)
+
+
 if __name__ == "__main__":
     import sys
 
@@ -350,17 +384,29 @@ if __name__ == "__main__":
         print("请输入目标 IP 地址")
         exit(1)
 
+    ifname = pcap.lookupdev()    # 自动取第1个活跃的网卡 en0
+    local_mac, local_ip = get_local_addr(ifname)
+    dst_ip = get_host_by_name(sys.argv[1])
+    if dst_ip:
+        print("解析 %s 的 IP 地址: %s 成功" % (sys.argv[1], dst_ip))
+    else:
+        print("解析 %s 的 IP 地址失败" % sys.argv[1])
+        exit(1)
+
+    if local_mac and local_ip:
+        print("获取本地网卡: %s 的 MAC: %s 和 IP: %s 成功" % (ifname, local_mac, local_ip))
+    else:
+        print("获取本地网卡 %s 的 MAC 和 IP 失败" % ifname)
+        exit(1)
+
     settings = {
-        # "interface": "en0",
-        "interface": "en4",
-        # "interface": None,
-        "src_ip": "192.168.2.44",
-        # "local_mac": "18:65:90:cc:45:b9",
-        "local_mac": "00:e0:4c:68:00:c6",
-        "dst_ip": sys.argv[1],
-        "dst_port": int(sys.argv[2]) if len(sys.argv) > 2 else 0,
-        "gateway_mac": "04:d4:c4:57:b2:70",     # 有线需要正确的 mac
-        # "gateway_mac": "00:00:00:00:00:00",   # 无线 wifi 随便 mac
+        "interface": ifname,
+        "src_ip": local_ip,
+        "local_mac": local_mac,
+        "dst_ip": dst_ip,
+        "dst_port": int(sys.argv[2]) if len(sys.argv) > 2 else 0,   # 指定 port 通常只对 TCP 有意义
+        # "gateway_mac": "04:d4:c4:57:b2:70",     # 有线需要正确的网关 MAC
+        "gateway_mac": "00:00:00:00:00:00",   # 无线 WIFI 可以填任意的网关 MAC
     }
 
     main(settings)
