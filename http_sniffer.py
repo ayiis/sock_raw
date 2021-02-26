@@ -114,11 +114,11 @@ class TCPHandler(object):
                 else:
                     remove_keys.add(conn_id)
 
-            print("** timmer: %s keys in expire_dict **" % (len(self.expire_dict)))
+            # print("** timmer: %s keys in expire_dict **" % (len(self.expire_dict)))
 
             for conn_id in remove_keys:
                 # 直接删除不活跃的连接
-                print("remove conns:", conn_id)
+                # print("remove conns:", conn_id)
                 self.clear_conn(conn_id)
 
     def http_iter(self, conn_id):
@@ -254,7 +254,7 @@ class TCPHandler(object):
                 """
                     此处完成捕获请求和返回，自由处理
                 """
-                print("======" * 12)
+                print("======" * 12, "%s:%s -> %s:%s" % (*conn_id[1], *conn_id[0]))
 
                 conn_done_req = self.conns[self.reverse_conn_id(conn_id)]["read_status"]
                 print(conn_done_req["b_header"].decode("utf8"))
@@ -286,7 +286,7 @@ class TCPHandler(object):
     def skip_packet(self, conn_data, tcp_data, tcp_dlen, conn_id, seq, ack):
 
         if conn_data["seq"] == seq:
-            print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+            # print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
             pass
 
         elif conn_data["next_seq"] - 1 == seq and tcp_data == b"\x00":
@@ -308,7 +308,7 @@ class TCPHandler(object):
                 correctly to keep-alive packets with no garbage data
                 octet.
             """
-            print("TCP keep-alive:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+            # print("TCP keep-alive:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
             pass
 
         elif conn_data["next_seq"] < seq:
@@ -320,14 +320,16 @@ class TCPHandler(object):
             # Previous segment(s) not captured (common at capture start)
             # However, this script capture SYN/ACK from tcp connection start, thus it only happens in a TCP Out-Of-Order
             if seq in conn_data["seq_list"]:
-                print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+                # print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+                pass
             else:
                 # print("TCP Out-Of-Order 2:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
                 self.insert_packet_by_seq(conn_data, seq, tcp_data)
 
         elif seq < conn_data["seq"]:
             if seq in conn_data["seq_list"]:
-                print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+                # print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+                pass
             else:
                 print("WARNING, maybe TCP Hijack:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
 
@@ -385,7 +387,7 @@ class TCPHandler(object):
     def handle_packet(self, tcp_data, tcp_dlen, src_addr, dst_addr, seq, ack):
         conn_id = (src_addr, dst_addr)
         if conn_id not in self.conns:
-            print("Warning: no conn_id in self.conns:", conn_id, tcp_dlen)
+            # print("Warning: no conn_id in self.conns:", conn_id, tcp_dlen)
             return None
 
         conn_data = self.conns[conn_id]
@@ -515,7 +517,15 @@ def main(http_filter, settings):
 
 if __name__ == "__main__":
 
-    if False:
+    if True:
+
+        settings = {
+            "interface": None,      # 自动获取
+            "ether": True,          # 完整 ether
+            "address_pair": None,   # 匹配所有地址
+        }
+
+    elif True:
 
         settings = {
             "interface": "en0",     # wifi 或 有线

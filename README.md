@@ -1,5 +1,10 @@
 # python
 
+## First of all
+
+** Contents contain hacking techniques, use is properly, do not be evil. **
+
+** 以下内容包含攻击性黑客技术，请妥善使用，勿用于非法用途。 **
 
 ### [basic-sniffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
 
@@ -52,19 +57,18 @@ I cut a part of code to make it out of work, sorry about that.
 
 But you know where to find it :P
 
-Add to your iptables like follow
+Add to your iptables somthing like this
 
 ```bash
-    iptables -A INPUT -p tcp -s 192.168.152.134 -j DROP
-    iptables -A OUTPUT -p tcp -d 192.168.152.134 --tcp-flags RST RST -j DROP
+iptables -A INPUT -p tcp -s 192.168.152.134 -j DROP
+iptables -A OUTPUT -p tcp -d 192.168.152.134 --tcp-flags RST RST -j DROP
 ```
 
-Just to tell your kenel:
+To tell your kenel:
 
-```bash
-    Do not send RST packet to target.134 -- that is what SYN FLOOD is
-    Drop every tcp packet from target.134 -- is it evil? yes
-```
+Do not send RST packet to target.134 -- that is what `SYN FLOOD` is
+
+Drop every tcp packet from target.134 -- is it evil? YES.
 
 
 ### [tcpevil.py](https://github.com/ayiis/python/blob/master/tcpevil.py)
