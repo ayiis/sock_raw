@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import q
 import time
 import zlib
 from socket import inet_aton, inet_ntoa
@@ -77,11 +78,13 @@ class TCPHandler(object):
 
         if conn_id in self.expire_dict:
             del self.expire_dict[conn_id]
-            del self.expire_dict[self.reverse_conn_id(conn_id)]
+            if self.reverse_conn_id(conn_id) in self.expire_dict:
+                del self.expire_dict[self.reverse_conn_id(conn_id)]
 
         if conn_id in self.conns:
             del self.conns[conn_id]
-            del self.conns[self.reverse_conn_id(conn_id)]
+            if self.reverse_conn_id(conn_id) in self.conns:
+                del self.conns[self.reverse_conn_id(conn_id)]
 
     def finish_conn(self, conn_id):
 
@@ -288,6 +291,7 @@ class TCPHandler(object):
         if conn_data["seq"] == seq:
             # print("TCP Retransmission:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
             pass
+            return True
 
         elif conn_data["next_seq"] - 1 == seq and tcp_data == b"\x00":
             # https://tools.ietf.org/html/rfc1122#page-101
@@ -310,6 +314,7 @@ class TCPHandler(object):
             """
             # print("TCP keep-alive:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
             pass
+            return True
 
         elif conn_data["next_seq"] < seq:
             # TCP Out-Of-Order
@@ -332,10 +337,13 @@ class TCPHandler(object):
                 pass
             else:
                 print("WARNING, maybe TCP Hijack:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
+                return True     # SKIP this packet, 通常是 conn 释放后，继续收到之前重发的 packet
 
         else:
             print("Not gona happened:", conn_id, conn_data["seq"], conn_data["next_seq"], seq)
             pass
+
+        return True
 
     def handshake(self, src_addr, dst_addr, seq, ack, tcp_flags):
 
@@ -405,6 +413,7 @@ class TCPHandler(object):
             self.touch_conn_expire(conn_id)
         else:
             self.skip_packet(conn_data, tcp_data, tcp_dlen, conn_id, seq, ack)
+            return None
 
         # 数据包不完整
         if not self.check_seq_list(conn_data):

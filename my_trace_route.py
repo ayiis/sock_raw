@@ -405,8 +405,8 @@ if __name__ == "__main__":
         "local_mac": local_mac,
         "dst_ip": dst_ip,
         "dst_port": int(sys.argv[2]) if len(sys.argv) > 2 else 0,   # 指定 port 通常只对 TCP 有意义
-        # "gateway_mac": "04:d4:c4:57:b2:70",     # 有线需要正确的网关 MAC
-        "gateway_mac": "00:00:00:00:00:00",   # 无线 WIFI 可以填任意的网关 MAC
+        "gateway_mac": "dc:fe:18:d6:75:20",     # 有线需要正确的网关 MAC
+        # "gateway_mac": "00:00:00:00:00:00",   # 无线 WIFI 可以填任意的网关 MAC
     }
 
     main(settings)

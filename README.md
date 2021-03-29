@@ -1,10 +1,8 @@
 # python
 
-## First of all
+### Contents contain hacking techniques, use it properly, do not be evil.
 
-** Contents contain hacking techniques, use is properly, do not be evil. **
-
-** 以下内容包含攻击性黑客技术，请妥善使用，勿用于非法用途。 **
+### 以下内容包含攻击性黑客技术，请妥善使用，勿用于非法用途。
 
 ### [basic-sniffer.py](https://github.com/ayiis/python/blob/master/basic-sniffer.py)
 
@@ -18,9 +16,9 @@ Use this to capture a TCP packet! A basic `tcp sniffer` for sample use.
 This table is construct like the definition size of packet, without extra infomation, a better `tcp sniffer` for senior.
 
 ```code
-             ┌──────────────────────────────────┬──────────────────────────────────┬──────────┐
-             │                  Destination Mac │                       Source Mac │Ether type│
-             └──────────────────────────────────┴──────────────────────────────────┴──────────┘
+              ┌─────────────────────────────────┬──────────────────────────────────┬──────────┐
+              │                 Destination Mac │                       Source Mac │Ether type│
+              └─────────────────────────────────┴──────────────────────────────────┴──────────┘
 ┌──────┬──────┬──────────┬─────────────────────┐  ┌────────────────────────┬──────────────────┐
 │  Ver │   HL │      TOS │        Total length │  │            Source Port │ Destination Port │
 ├──────┴──────┴──────────┼──────┬──────────────┤  ├────────────────────────┴──────────────────┤
