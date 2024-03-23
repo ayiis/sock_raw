@@ -1,15 +1,13 @@
 # -*- coding:utf-8 -*-
 """
     Use ICMP/TCP/UDP to trace the route to target
-    TODO:
-        pcap.pcap timeout_ms seems not working
 """
 import time
 import random
 from struct import pack, unpack
-from socket import inet_aton, inet_ntoa, gethostbyname
-import pcap
-import os
+from socket import inet_aton, inet_ntoa
+import sock_raw
+from sock_raw import socks
 
 
 def checksum(tcp_header):
@@ -35,10 +33,12 @@ def packet_ether_header(dst_mac, src_mac, ether_type=0x0800):
 
 def pack_ip(src_ip, dst_ip, id, ttl, ptype, ip_dlen):
 
-    get_ipheader = lambda iph_checksum: pack(
-        "!BBHHHBBH4s4s",
-        69, 0, 20 + ip_dlen, id, 0, ttl, ptype, iph_checksum, src_ip, dst_ip
-    )
+    def get_ipheader(iph_checksum):
+        return pack(
+            "!BBHHHBBH4s4s",
+            69, 0, 20 + ip_dlen, id, 0, ttl, ptype, iph_checksum, src_ip, dst_ip
+        )
+
     ip_header = get_ipheader(0)
     iph_checksum = checksum(ip_header)
     ip_header = get_ipheader(iph_checksum)
@@ -47,10 +47,13 @@ def pack_ip(src_ip, dst_ip, id, ttl, ptype, ip_dlen):
 
 
 def pack_tcp(src_ip, dst_ip, src_port, dst_port, seq, ack, flags=0b000010):
-    get_tcpheader = lambda tcph_checksum: pack(
-        "!HHLLBBHHH",
-        src_port, dst_port, seq, ack, 80, flags, 53270, tcph_checksum, 0
-    )
+
+    def get_tcpheader(tcph_checksum):
+        return pack(
+            "!HHLLBBHHH",
+            src_port, dst_port, seq, ack, 80, flags, 53270, tcph_checksum, 0
+        )
+
     tcp_header = get_tcpheader(0)
     psh = pack("!4s4sBBH", src_ip, dst_ip, 0, 6, 20)
     tcph_checksum = checksum(psh + tcp_header)
@@ -60,11 +63,13 @@ def pack_tcp(src_ip, dst_ip, src_port, dst_port, seq, ack, flags=0b000010):
 
 
 def pack_udp(src_ip, dst_ip, src_port, dst_port):
-    get_udpheader = lambda udph_checksum: pack("!HHHH", src_port, dst_port, 32, udph_checksum)
+
+    def get_udpheader(udph_checksum):
+        return pack("!HHHH", src_port, dst_port, 32, udph_checksum)
+
     udp_header = get_udpheader(0)
     psh = pack("!4s4sBBH", src_ip, dst_ip, 0, 17, 32)
     udp_data = (dst_port).to_bytes(2, "big") * ((32 - 8) // 2)
-    # udp_data = b'\x00' * 24
 
     udph_checksum = checksum(psh + udp_header + udp_data)
     udp_header = get_udpheader(udph_checksum)
@@ -73,7 +78,10 @@ def pack_udp(src_ip, dst_ip, src_port, dst_port):
 
 
 def pack_icmp(src_ip, dst_ip, id, seq):
-    get_icmpheader = lambda icmph_checksum: pack("!BBHHH", 8, 0, icmph_checksum, id, seq)
+
+    def get_icmpheader(icmph_checksum):
+        return pack("!BBHHH", 8, 0, icmph_checksum, id, seq)
+
     icmp_header = get_icmpheader(0)
     icmp_data = bytes.fromhex(
         "08090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f3031323334353637"
@@ -87,7 +95,7 @@ def pack_icmp(src_ip, dst_ip, id, seq):
 
 def sender(settings):
 
-    pp_socket = pcap.pcap(name=settings["interface"], promisc=False)
+    sock = socks.build_sock()
 
     src_ip = inet_aton(settings["src_ip"])
     dst_ip = inet_aton(settings["dst_ip"])
@@ -95,93 +103,55 @@ def sender(settings):
     local_mac = settings["local_mac"]
     gateway_mac = settings["gateway_mac"]
 
-    get_ip_header = lambda ptype, ip_dlen: (
-        packet_ether_header(
-            gateway_mac,
-            local_mac
-        ) + pack_ip(
+    def get_ip_header(ptype, ip_dlen):
+        return packet_ether_header(gateway_mac, local_mac) + pack_ip(
             src_ip,
             dst_ip,
-            settings["checkid"] + i_send,
-            ttl=i_send,
+            settings["checkid"] + isend,
+            ttl=isend,
             ptype=ptype,
             ip_dlen=ip_dlen,
         )
-    )
 
-    # 缓存 packet
-    cache_all_packet = {
-        "icmp": {},
-        "tcp": {},
-        "udp": {},
-    }
-
-    i_send = 1
-    while i_send <= MAX_ROUTE:
+    isend = 1
+    while isend <= MAX_ROUTE:
 
         if not settings["end_tcp"]:
-            tcp_packet = get_ip_header(6, 20) + pack_tcp(
+            packet = get_ip_header(6, 20) + pack_tcp(
                 src_ip,
                 dst_ip,
-                settings["checkid"] + i_send,
-                settings["dst_port"] or (settings["checkid"] + i_send),
-                settings["checkid"] + i_send,
+                settings["checkid"] + isend,
+                settings["dst_port"] or (settings["checkid"] + isend),
+                settings["checkid"] + isend,
                 0,
                 0b000010,            # UAPRSF 除了 SYN 都没有返回（可能被网关抛弃了）
             )
-            pcap.pcap.sendpacket(pp_socket, tcp_packet)
-            cache_all_packet["tcp"][i_send] = tcp_packet
+            socks.raw_send_packet(sock, packet)
 
         if not settings["end_udp"]:
-            udp_packet = get_ip_header(17, 32) + pack_udp(
+            packet = get_ip_header(17, 32) + pack_udp(
                 src_ip,
                 dst_ip,
-                settings["checkid"] + i_send,
-                settings["dst_port"] or (settings["checkid"] + i_send),
+                settings["checkid"] + isend,
+                settings["dst_port"] or (settings["checkid"] + isend),
             )
-            pcap.pcap.sendpacket(pp_socket, udp_packet)
-            cache_all_packet["udp"][i_send] = udp_packet
+            socks.raw_send_packet(sock, packet)
 
         if not settings["end_icmp"]:
-            icmp_packet = get_ip_header(1, 56) + pack_icmp(
+            packet = get_ip_header(1, 56) + pack_icmp(
                 src_ip,
                 dst_ip,
-                settings["checkid"] + i_send,
-                settings["checkid"] + i_send,
+                settings["checkid"] + isend,
+                settings["checkid"] + isend,
             )
-            pcap.pcap.sendpacket(pp_socket, icmp_packet)
-            cache_all_packet["icmp"][i_send] = icmp_packet
+            socks.raw_send_packet(sock, packet)
 
         yield False
 
-        if i_send > 20:
-            break
-
-        i_send += 1
+        isend += 1
         if settings["end_tcp"] and settings["end_udp"] and settings["end_icmp"]:
             break
-        else:
-            # 如果其中一个探测到end了，以此为终点，在到达 MAX_ROUTE 前结束
-            max_end = max(settings["end_tcp"], settings["end_udp"], settings["end_icmp"])
-            if max_end and i_send > max_end * 1.2 + 2:
-                break
 
-    yield False
-
-    for _ in range(3):
-        i_scount = 0
-        max_end = max(settings["end_tcp"], settings["end_udp"], settings["end_icmp"]) or MAX_ROUTE
-        for res_type, items in cache_all_packet.items():
-            for ix in range(MAX_ROUTE):
-                if ix in items and ix <= max_end and ix not in settings["res"][res_type]:
-                    i_scount = i_scount + 1
-                    pcap.pcap.sendpacket(pp_socket, items[ix])
-
-                # 缓一缓
-                if i_scount % 5 == 0:
-                    yield False
-
-    # 完成、退出
     yield True
 
 
@@ -238,68 +208,17 @@ def receiver(settings):
         # 获得预期的返回，在此处理
         if res_type:
 
-            if req_id not in (settings["res"]["icmp"].keys() | settings["res"]["tcp"].keys() | settings["res"]["udp"].keys()):
-                print("%s.%s: %s" % (
-                    res_type, req_id, src_ip
-                ))
-
             settings["res"][res_type][req_id] = src_ip
             settings["res"]["max_ttl"] = max(req_id, settings["res"]["max_ttl"])
 
-            # ip_hdata = unpack("!BBHHHBBH4s4s", icmp_packet[8:28])
-            # raw_src_ip = inet_ntoa(ip_hdata[8])
-            # raw_dst_ip = inet_ntoa(ip_hdata[9])
-            # print("%s.%s (%s -> %s): %s -> %s" % (
-            #     res_type, req_id, raw_src_ip, raw_dst_ip, src_ip, dst_ip
-            # ))
+            ip_hdata = unpack("!BBHHHBBH4s4s", icmp_packet[8:28])
+            raw_src_ip = inet_ntoa(ip_hdata[8])
+            raw_dst_ip = inet_ntoa(ip_hdata[9])
+            print("%s.%s (%s -> %s): %s -> %s" % (
+                res_type, req_id, raw_src_ip, raw_dst_ip, src_ip, dst_ip
+            ))
 
     return do
-
-
-def get_local_addr(ifname):
-    """
-        依赖 ifconfig 和 grep 命令
-    """
-    local_mac, local_ip = None, None
-    mac_res_text = os.popen("""ifconfig|grep "^%s:" -A7""" % ifname).read()
-    for line in mac_res_text.splitlines():
-        items = [x for x in line.strip().split(" ") if x]
-        if items[0] == "ether":
-            local_mac = items[1]
-        elif items[0] == "inet":
-            local_ip = items[1]
-            break
-    else:
-        raise Exception("获取本地MAC、IP失败")
-
-    return local_mac, local_ip
-
-
-def get_gateway_addr(ifname):
-    """
-        依赖 route 和 netstat 命令
-    """
-    route_ip_res_text = os.popen("""route -n get default""").read()
-    gateway_ip = next((x for x in route_ip_res_text.splitlines() if "gateway: " in x), "").split("gateway: ")[1]
-
-    gateway_mac = None
-    route_mac_res_text = os.popen("""netstat -nr -f inet""").read()
-    for line in route_mac_res_text.splitlines():
-        items = [x for x in line.split(" ") if x]
-        if len(items) > 3 and items[0] == gateway_ip and items[3] == ifname:
-            gateway_mac = items[1]
-            break
-    else:
-        raise Exception("获取网关MAC、IP失败")
-
-    return gateway_mac, gateway_ip
-
-
-def format_mac(mac):
-    """
-        将 58:c:bb:c2:2:1 变成 58:0c:bb:c2:02:01
-    """
-    return ":".join([x.rjust(2, "0") for x in mac.lower().split(":")])
 
 
 MAX_ROUTE = 64      # 最长链路
@@ -307,31 +226,7 @@ SEND_PERIOD = 128   # 发送探测包周期 毫秒
 CLEANUP_TIMEOUT = 1000  # 最后的超时时间 毫秒
 
 
-def main(target_host):
-
-    ifname = pcap.lookupdev()    # 自动取第1个活跃的网卡 en0
-    local_mac, local_ip = get_local_addr(ifname)
-    gateway_mac, gateway_ip = get_gateway_addr(ifname)
-    local_mac = format_mac(local_mac)
-    gateway_mac = format_mac(gateway_mac)
-
-    # gethostbyname 只解析第一个 IP，也可以像 downloader 那样解析多个
-    dst_ip = gethostbyname(target_host)
-    if dst_ip:
-        print("解析 %s 的 IP 地址: %s 成功" % (target_host, dst_ip))
-    else:
-        print("解析 %s 的 IP 地址失败" % target_host)
-        exit(1)
-
-    settings = {
-        "interface": ifname,
-        "src_ip": local_ip,
-        "local_mac": local_mac,
-        "dst_ip": dst_ip,
-        "dst_port": int(sys.argv[2]) if len(sys.argv) > 2 else 0,   # 指定 port 通常只对 TCP 有意义
-        "gateway_mac": gateway_mac,     # 需要正确的网关 MAC
-    }
-    print(settings)
+def main(settings):
 
     settings["checkid"] = random.randint(10000, 40000)
 
@@ -345,7 +240,7 @@ def main(target_host):
         "icmp": {},
     }
 
-    sniffer = pcap.pcap(name=settings["interface"], promisc=False, immediate=True, timeout_ms=100)
+    sniffer = socks.build_raw_sock()
     ts = time.time()
     iter_sender = sender(settings)
     wrap_receiver = receiver(settings)
@@ -354,7 +249,7 @@ def main(target_host):
 
     while True:
 
-        _, packet = next(sniffer, (None, None))
+        packet = socks.sniff_next(sniffer)
 
         if packet[12] == 8:         # IP
 
@@ -411,7 +306,7 @@ def main(target_host):
 
             elif packet[23] == 6:     # TCP
                 # 如果顺利到 TCP 层（端口不通被 RST，或端口通 SYN+ACK ），判断 TCP 的 ACK 即可知道 TTL 数
-                # *但是关闭的端口很可能不会响应任何信息，无法判断结束
+                # *但是关闭的端口很可能不会响应任何信息
                 dst_port = int.from_bytes(packet[ETHER_LEN + ihl: ETHER_LEN + ihl + 2], "big")
                 src_port = int.from_bytes(packet[ETHER_LEN + ihl + 2: ETHER_LEN + ihl + 4], "big")
 
@@ -436,7 +331,6 @@ def main(target_host):
                 pass
 
         if start_cleanup:
-            # 格式化输出
             if time.time() - ts >= CLEANUP_TIMEOUT * 0.001:
                 print("%4s%20s\t\t%20s\t\t%20s" % ("", "ICMP", "TCP", "UDP"))
                 for i in range(1, settings["res"]["max_ttl"] + 1):
@@ -457,16 +351,63 @@ def main(target_host):
 
         elif time.time() - ts >= SEND_PERIOD * 0.001:
             ts = time.time()
+
             done = next(iter_sender, None)
             if done:
                 start_cleanup = True
+
+
+def get_local_addr(ifname):
+    """
+        通过 python 直接获得 osx 的本地 MAC 比较困难，此处依赖 ifconfig 获取
+    """
+    import os, re
+    mac, ip = None, None
+    res_text = os.popen("""ifconfig|grep "^%s:" -A7""" % ifname).read()
+    for line in res_text.splitlines():
+
+        re_mac = re.match(r"""^[\W]+ether[\W]+(([0-9a-f]{2}:){5}[0-9a-f]{2})[\W]*$""", line, re.I)
+        if re_mac:
+            mac = re_mac.groups()[0]
+
+        re_ip = re.match(r"""^[\W]+inet[\W]+(([0-9]{1,3}\.){3}[0-9]{1,3})[\W]+netmask.*$""", line, re.I)
+        if re_ip:
+            ip = re_ip.groups()[0]
+
+    return mac, ip
+
+
+def get_host_by_name(name):
+    """
+        只解析第一个 IP，也可以像 downloader 那样解析多个
+    """
+    from socket import gethostbyname
+    return gethostbyname(name)
 
 
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: xxxxxx <IP|Host|Domain> [PORT]")
+        print("请输入目标 IP 地址")
         exit(1)
 
-    main(sys.argv[1])
+    ifname, local_mac, local_ip = sock_raw.local_gateway, sock_raw.local_mac, sock_raw.local_ip
+    gateway_mac, gateway_ip = sock_raw.gateway_mac, sock_raw.gateway_ip
+    dst_ip = get_host_by_name(sys.argv[1])
+    if dst_ip:
+        print("解析 %s 的 IP 地址: %s 成功" % (sys.argv[1], dst_ip))
+    else:
+        print("解析 %s 的 IP 地址失败" % sys.argv[1])
+        exit(1)
+
+    settings = {
+        "interface": ifname,
+        "src_ip": local_ip,
+        "local_mac": local_mac,
+        "dst_ip": dst_ip,
+        "dst_port": int(sys.argv[2]) if len(sys.argv) > 2 else 0,   # 指定 port 通常只对 TCP 有意义
+        "gateway_mac": gateway_mac,     # 通常需要正确的网关 MAC
+    }
+
+    main(settings)
