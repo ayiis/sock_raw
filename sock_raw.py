@@ -1,5 +1,5 @@
 import platform
-import os, re
+import os
 
 socks = None
 
@@ -96,7 +96,7 @@ try:
     # 适用于 OSX
     import pcap
     socks = SockRawPcap()
-except:
+except Exception:
     # 适用于 Linux
     import socket
     socks = SockRaw()
